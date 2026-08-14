@@ -1,0 +1,96 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.dialog {
+  background: var(--background);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-lg);
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--spacing-md);
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.message {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.progressContainer {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: var(--spacing-sm) 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .progressContainer {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.progressBar {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 4px;
+  transition: width 0.2s ease;
+}
+
+.actions {
+  display: flex;
+  width: 100%;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-sm);
+}
+
+.btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+.btn:active {
+  opacity: 0.7;
+}
+
+.btnPrimary {
+  background: var(--primary);
+  color: var(--primary-text);
+}
+
+.btnSecondary {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  .btnSecondary {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}

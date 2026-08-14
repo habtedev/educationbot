@@ -1,0 +1,52 @@
+:root {
+  /* App Theme Variables */
+  --background: #0d0c18; /* Deep navy/purple dark theme */
+  --foreground: #ffffff;
+  --card-bg: #151326; /* Slightly lighter for cards */
+  --card-border: rgba(255, 255, 255, 0.05);
+  --primary: #7c4dff; /* Purple primary */
+  --primary-text: #ffffff;
+  --text-muted: #8b899d; /* Greyish text */
+  --border-radius: 20px; /* Highly rounded corners */
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  
+  /* Gradients */
+  --grad-button: linear-gradient(90deg, #7c4dff 0%, #29b6f6 100%);
+  --grad-logic: linear-gradient(135deg, #a750ff 0%, #b388ff 100%);
+  --grad-psychology: linear-gradient(135deg, #ff5252 0%, #ff8a80 100%);
+  --grad-anthropology: linear-gradient(135deg, #00e676 0%, #18ffff 100%);
+  --grad-economics: linear-gradient(135deg, #ffb300 0%, #ffd54f 100%);
+  --grad-emerging: linear-gradient(135deg, #2979ff 0%, #82b1ff 100%);
+  --grad-global: linear-gradient(135deg, #00e5ff 0%, #69f0ae 100%);
+  --grad-civics: linear-gradient(135deg, #ff8a65 0%, #ffccbc 100%);
+}
+
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+}

@@ -1,0 +1,102 @@
+.container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--card-bg);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  z-index: 10;
+}
+
+@media (prefers-color-scheme: dark) {
+  .toolbar {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.iconBtn {
+  color: var(--foreground);
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.iconBtn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  .iconBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.iconBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.pageInfo {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.viewerArea {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  background: var(--background);
+  padding-bottom: 24px;
+}
+
+/* Make pdf pages centered and responsive */
+.viewerArea :global(.react-pdf__Document) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.viewerArea :global(.react-pdf__Page) {
+  margin: var(--spacing-md) 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  background-color: white !important; /* PDF needs white bg */
+}
+
+@media (prefers-color-scheme: dark) {
+  .viewerArea :global(.react-pdf__Page canvas) {
+    /* Optional: invert colors for dark mode reading if desired */
+    /* filter: invert(1) hue-rotate(180deg); */
+  }
+}
+
+.loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  gap: var(--spacing-md);
+}
