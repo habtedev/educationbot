@@ -30,12 +30,27 @@ export default function Home() {
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadStatus, setDownloadStatus] = useState<'downloading' | 'success' | 'error'>('downloading');
 
-  useEffect(() => {
-    setIsClient(true);
+  const checkCacheStatus = () => {
     AVAILABLE_COURSES.forEach(async (course) => {
       const cached = await checkIsCached(`/courses/${course.file}`);
       setCachedStatus(prev => ({ ...prev, [course.id]: cached }));
     });
+  };
+
+  useEffect(() => {
+    setIsClient(true);
+    checkCacheStatus();
+
+    // Re-check when returning to the page (e.g., coming back from a course view)
+    window.addEventListener('focus', checkCacheStatus);
+    
+    // Fallback interval to catch background downloads completing while on the home page
+    const interval = setInterval(checkCacheStatus, 3000);
+    
+    return () => {
+      window.removeEventListener('focus', checkCacheStatus);
+      clearInterval(interval);
+    };
   }, []);
 
   const handleOpenCourse = (courseId: string) => {

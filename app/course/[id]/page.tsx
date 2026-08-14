@@ -64,13 +64,11 @@ export default function CourseViewer({ params }: { params: Promise<{ id: string 
       const isCached = await checkIsCached(originalUrl);
       
       if (active) {
-        if (isCached) {
-          const cachedBlobUrl = await getCachedPdfUrl(originalUrl);
-          setPdfUrl(cachedBlobUrl || originalUrl);
-        } else {
-          // Serve immediately for fast load
-          setPdfUrl(originalUrl);
-          
+        // ALWAYS use the original URL.
+        // The Service Worker will instantly intercept this and serve HTTP Range Requests directly from the offline cache!
+        setPdfUrl(originalUrl);
+        
+        if (!isCached) {
           // Delay background caching by 3 seconds so it doesn't steal internet bandwidth from the PDF viewer's initial load
           setTimeout(() => {
             if (active) {
