@@ -51,7 +51,10 @@ export const PDFViewer = ({ courseId, url }: PDFViewerProps) => {
       });
     }, {
       root: document.getElementById('pdf-scroll-container'),
-      threshold: 0.5 // Trigger when page is 50% visible
+      // Create a virtual line in the center of the screen. Whichever page touches it is the "current" page.
+      // This fixes the bug where zoomed-in pages get stuck because they are too tall to ever be 50% visible.
+      rootMargin: "-50% 0px -50% 0px",
+      threshold: 0 
     });
 
     return () => {
@@ -108,7 +111,6 @@ export const PDFViewer = ({ courseId, url }: PDFViewerProps) => {
           >
             {Array.from(new Array(numPages), (el, index) => {
               const p = index + 1;
-              const isVisible = Math.abs(p - pageNumber) <= 2;
               
               return (
                 <div 
@@ -116,23 +118,21 @@ export const PDFViewer = ({ courseId, url }: PDFViewerProps) => {
                   className={styles.pageWrapper}
                   data-page={p}
                   ref={handleRef}
-                  style={{ minHeight: isVisible ? 'auto' : estimatedPageHeight }}
+                  style={{ minHeight: estimatedPageHeight }}
                 >
-                  {/* Only fully render the page if it is near viewport to save RAM */}
-                  {isVisible ? (
-                    <Page
-                      pageNumber={p}
-                      scale={scale}
-                      renderTextLayer={true}
-                      renderAnnotationLayer={true}
-                      className="pdf-page"
-                      width={pageWidth}
-                    />
-                  ) : (
-                    <div style={{ width: pageWidth, height: estimatedPageHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', background: 'rgba(255,255,255,0.02)' }}>
-                      Loading page {p}...
-                    </div>
-                  )}
+                  <Page
+                    pageNumber={p}
+                    scale={scale}
+                    renderTextLayer={true}
+                    renderAnnotationLayer={true}
+                    className="pdf-page"
+                    width={pageWidth}
+                    loading={
+                      <div style={{ width: pageWidth, height: estimatedPageHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
+                        Rendering...
+                      </div>
+                    }
+                  />
                 </div>
               );
             })}
