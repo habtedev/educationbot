@@ -28,7 +28,11 @@ export const cachePdf = async (url: string, onProgress?: (progress: number) => v
       
       const blob = new Blob(chunks, { type: 'application/pdf' });
       const newResponse = new Response(blob, {
-        headers: { 'Content-Type': 'application/pdf' }
+        headers: { 
+          'Content-Type': 'application/pdf',
+          'Content-Length': String(blob.size),
+          'Accept-Ranges': 'bytes'
+        }
       });
       await cache.put(url, newResponse);
     } else {

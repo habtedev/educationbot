@@ -23,7 +23,8 @@ self.addEventListener('fetch', (event) => {
           const rangeHeader = event.request.headers.get('range');
           if (rangeHeader) {
             const blob = await cachedResponse.blob();
-            const bytes = /^bytes\=(\d+)\-(\d+)?$/g.exec(rangeHeader);
+            // Removed /g flag which causes stateful regex bugs
+            const bytes = /^bytes=(\d+)-(\d+)?$/.exec(rangeHeader.trim());
             if (bytes) {
               const start = Number(bytes[1]);
               const end = bytes[2] ? Number(bytes[2]) : blob.size - 1;
@@ -41,8 +42,17 @@ self.addEventListener('fetch', (event) => {
               });
             }
           }
-          // Return full cached response if no range requested
-          return cachedResponse;
+          
+          // Return full cached response if no range requested, but ensure Accept-Ranges is present
+          const blob = await cachedResponse.blob();
+          return new Response(blob, {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/pdf',
+              'Content-Length': String(blob.size),
+              'Accept-Ranges': 'bytes'
+            }
+          });
         }
 
         // If not cached, fetch from network normally
