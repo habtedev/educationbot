@@ -1,12 +1,20 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Star } from 'lucide-react';
-import { PDFViewer } from '../../../components/PDFViewer';
-import { getCachedPdfUrl, checkIsCached } from '../../../lib/cache';
+import { checkIsCached } from '../../../lib/cache';
 import { useCourseStore } from '../../../store/useCourseStore';
 import styles from './page.module.css';
+
+// Dynamic import with ssr:false prevents react-pdf from running during
+// static pre-rendering (which fails with "DOMMatrix is not defined")
+const PDFViewer = dynamic(
+  () => import('../../../components/PDFViewer').then(m => ({ default: m.PDFViewer })),
+  { ssr: false, loading: () => <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', color: '#52525b' }}>Opening PDF...</div> }
+);
+
 
 const AVAILABLE_COURSES = {
   'anthropology': { title: 'Anthropology', file: 'Anthropology.pdf' },
@@ -17,6 +25,15 @@ const AVAILABLE_COURSES = {
   'logic': { title: 'Logic and Critical Thinking', file: 'Logic and Critical Thinking.pdf' },
   'psychology': { title: 'Psychology', file: 'Psychology.pdf' },
 } as Record<string, { title: string, file: string }>;
+
+// This is the key fix for full offline support!
+// By exporting generateStaticParams, Next.js pre-builds ALL 7 course pages
+// as static HTML files at build time. This changes the route from:
+//   ƒ (Dynamic - requires server/internet on every visit) 
+// to:
+//   ○ (Static - pre-built HTML, works 100% offline from PWA cache)
+// NOTE: This export lives in a separate layout.tsx (server component) since
+// 'use client' pages cannot export generateStaticParams directly.
 
 export default function CourseViewer({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
