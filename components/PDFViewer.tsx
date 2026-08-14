@@ -35,21 +35,43 @@ export const PDFViewer = ({ courseId, url }: PDFViewerProps) => {
     // Removed automatic progress update here to rely on scroll
   };
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const container = e.currentTarget;
-    const scrollLeft = container.scrollLeft;
-    const clientWidth = container.clientWidth;
-    // Calculate which page we are on based on scroll position
-    const newPage = Math.round(scrollLeft / clientWidth) + 1;
-    
-    if (newPage !== pageNumber && newPage >= 1 && newPage <= numPages) {
-      setPageNumber(newPage);
-      updateProgress(courseId, newPage, numPages);
+  const observer = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    // Setup intersection observer to track which page is currently in view
+    observer.current = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const page = Number(entry.target.getAttribute('data-page'));
+          if (page && page !== pageNumber) {
+            setPageNumber(page);
+            updateProgress(courseId, page, numPages);
+          }
+        }
+      });
+    }, {
+      root: document.getElementById('pdf-scroll-container'),
+      threshold: 0.5 // Trigger when page is 50% visible
+    });
+
+    return () => {
+      if (observer.current) observer.current.disconnect();
+    };
+  }, [pageNumber, courseId, numPages, updateProgress]);
+
+  // Attach observer to page wrappers as they render
+  const handleRef = (el: HTMLDivElement | null) => {
+    if (el && observer.current) {
+      observer.current.observe(el);
     }
   };
 
   const handleZoomIn = () => setScale(prev => Math.min(prev + 0.2, 3.0));
   const handleZoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.6));
+
+  // Academic PDFs are standard A4 (1 : 1.414 ratio)
+  const pageWidth = typeof window !== 'undefined' ? (window.innerWidth > 768 ? 768 : window.innerWidth - 32) : 300;
+  const estimatedPageHeight = pageWidth * 1.414;
 
   return (
     <div className={styles.container}>
@@ -81,26 +103,33 @@ export const PDFViewer = ({ courseId, url }: PDFViewerProps) => {
           }
         >
           <div 
-            className={styles.horizontalScrollContainer} 
-            onScroll={handleScroll}
+            className={styles.scrollContainer} 
             id="pdf-scroll-container"
           >
             {Array.from(new Array(numPages), (el, index) => {
               const p = index + 1;
+              const isVisible = Math.abs(p - pageNumber) <= 2;
+              
               return (
-                <div key={`page_${p}`} className={styles.pageWrapper}>
-                  {/* Only fully render the page if it is within 3 pages of the current page to prevent memory crashes on phones */}
-                  {Math.abs(p - pageNumber) <= 3 ? (
+                <div 
+                  key={`page_${p}`} 
+                  className={styles.pageWrapper}
+                  data-page={p}
+                  ref={handleRef}
+                  style={{ minHeight: isVisible ? 'auto' : estimatedPageHeight }}
+                >
+                  {/* Only fully render the page if it is near viewport to save RAM */}
+                  {isVisible ? (
                     <Page
                       pageNumber={p}
                       scale={scale}
                       renderTextLayer={true}
                       renderAnnotationLayer={true}
                       className="pdf-page"
-                      width={window.innerWidth > 768 ? 768 : window.innerWidth - 32}
+                      width={pageWidth}
                     />
                   ) : (
-                    <div style={{ width: window.innerWidth - 32, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
+                    <div style={{ width: pageWidth, height: estimatedPageHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', background: 'rgba(255,255,255,0.02)' }}>
                       Loading page {p}...
                     </div>
                   )}
