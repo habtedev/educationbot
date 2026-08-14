@@ -33,6 +33,7 @@ bot.onText(/\/start/, (msg) => {
 Click the button below to start learning!`;
 
   const options = {
+    protect_content: true,
     reply_markup: {
       inline_keyboard: [
         [

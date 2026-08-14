@@ -112,6 +112,7 @@ export default function Home() {
               id={course.id}
               title={course.title}
               desc={course.desc}
+              isCached={cachedStatus[course.id]}
               onOpen={() => handleOpenCourse(course.id)}
             />
           ))}

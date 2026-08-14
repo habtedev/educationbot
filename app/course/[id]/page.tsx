@@ -68,7 +68,13 @@ export default function CourseViewer({ params }: { params: Promise<{ id: string 
           const cachedBlobUrl = await getCachedPdfUrl(originalUrl);
           setPdfUrl(cachedBlobUrl || originalUrl);
         } else {
+          // Serve immediately for fast load
           setPdfUrl(originalUrl);
+          
+          // Background cache it for offline use
+          import('../../../lib/cache').then(({ cachePdf }) => {
+            cachePdf(originalUrl).catch(console.error);
+          });
         }
       }
     };

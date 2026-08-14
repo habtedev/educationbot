@@ -8,6 +8,7 @@ interface CourseCardProps {
   id: string;
   title: string;
   desc?: string;
+  isCached?: boolean;
   onOpen?: () => void;
 }
 
@@ -25,6 +26,7 @@ export const CourseCard = ({
   id,
   title,
   desc,
+  isCached = false,
   onOpen,
 }: CourseCardProps) => {
   const emoji = COURSE_EMOJIS[id] || '📚';
@@ -45,7 +47,7 @@ export const CourseCard = ({
         {desc && <p className={styles.desc}>{desc}</p>}
         
         <div className={styles.badge}>
-          <BookOpen size={12} /> TAP TO READ
+          <BookOpen size={12} /> {isCached ? 'READ' : 'TAP TO READ'}
         </div>
       </div>
 

@@ -32,13 +32,20 @@ export const PDFViewer = ({ courseId, url }: PDFViewerProps) => {
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
-    updateProgress(courseId, pageNumber, numPages);
+    // Removed automatic progress update here to rely on scroll
   };
 
-  const changePage = (offset: number) => {
-    const newPage = Math.min(Math.max(1, pageNumber + offset), numPages || 1);
-    setPageNumber(newPage);
-    updateProgress(courseId, newPage, numPages);
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const scrollLeft = container.scrollLeft;
+    const clientWidth = container.clientWidth;
+    // Calculate which page we are on based on scroll position
+    const newPage = Math.round(scrollLeft / clientWidth) + 1;
+    
+    if (newPage !== pageNumber && newPage >= 1 && newPage <= numPages) {
+      setPageNumber(newPage);
+      updateProgress(courseId, newPage, numPages);
+    }
   };
 
   const handleZoomIn = () => setScale(prev => Math.min(prev + 0.2, 3.0));
@@ -48,15 +55,9 @@ export const PDFViewer = ({ courseId, url }: PDFViewerProps) => {
     <div className={styles.container}>
       <div className={styles.toolbar}>
         <div className={styles.controls}>
-          <button onClick={() => changePage(-1)} disabled={pageNumber <= 1} className={styles.iconBtn}>
-            <ChevronLeft size={24} />
-          </button>
           <span className={styles.pageInfo}>
             {pageNumber} / {numPages || '?'}
           </span>
-          <button onClick={() => changePage(1)} disabled={pageNumber >= numPages} className={styles.iconBtn}>
-            <ChevronRight size={24} />
-          </button>
         </div>
         
         <div className={styles.controls}>
@@ -79,16 +80,34 @@ export const PDFViewer = ({ courseId, url }: PDFViewerProps) => {
             </div>
           }
         >
-          {numPages > 0 && (
-            <Page
-              pageNumber={pageNumber}
-              scale={scale}
-              renderTextLayer={true}
-              renderAnnotationLayer={true}
-              className="pdf-page"
-              width={window.innerWidth > 768 ? 768 : window.innerWidth - 32}
-            />
-          )}
+          <div 
+            className={styles.horizontalScrollContainer} 
+            onScroll={handleScroll}
+            id="pdf-scroll-container"
+          >
+            {Array.from(new Array(numPages), (el, index) => {
+              const p = index + 1;
+              return (
+                <div key={`page_${p}`} className={styles.pageWrapper}>
+                  {/* Only fully render the page if it is within 3 pages of the current page to prevent memory crashes on phones */}
+                  {Math.abs(p - pageNumber) <= 3 ? (
+                    <Page
+                      pageNumber={p}
+                      scale={scale}
+                      renderTextLayer={true}
+                      renderAnnotationLayer={true}
+                      className="pdf-page"
+                      width={window.innerWidth > 768 ? 768 : window.innerWidth - 32}
+                    />
+                  ) : (
+                    <div style={{ width: window.innerWidth - 32, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
+                      Loading page {p}...
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </Document>
       </div>
     </div>
