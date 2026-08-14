@@ -11,7 +11,7 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
-  turbopack: {}, // Required to silence Next.js 16 warning when using webpack plugins like next-pwa
+  /* config options here */
 };
 
 export default withPWA(nextConfig);

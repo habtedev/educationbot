@@ -8,8 +8,8 @@ import styles from './PDFViewer.module.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 
-// Set worker url manually
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// Set worker url locally so it can be cached offline by PWA
+pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
 
 interface PDFViewerProps {
   courseId: string;
@@ -98,6 +98,11 @@ export const PDFViewer = ({ courseId, url }: PDFViewerProps) => {
       <div className={styles.viewerArea}>
         <Document
           file={url}
+          options={{
+            cMapUrl: '/cmaps/',
+            cMapPacked: true,
+            standardFontDataUrl: '/standard_fonts/',
+          }}
           onLoadSuccess={onDocumentLoadSuccess}
           loading={
             <div className={styles.loader}>

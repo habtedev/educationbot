@@ -39,3 +39,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# PWA
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/fallback-*.js
+public/worker-*.js
+public/telegram-web-app.js
+public/standard_fonts/
+public/cmaps/
