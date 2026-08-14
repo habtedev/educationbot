@@ -40,12 +40,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# PWA
+# PWA - auto-generated during build, do not commit
 public/sw.js
 public/sw.js.map
 public/workbox-*.js
 public/fallback-*.js
 public/worker-*.js
-public/telegram-web-app.js
-public/standard_fonts/
-public/cmaps/
+
+# NOTE: pdf.worker.min.js, standard_fonts/, cmaps/, telegram-web-app.js
+# are NOT ignored — they must be committed so Vercel can deploy them offline.

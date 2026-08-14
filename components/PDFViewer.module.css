@@ -3,124 +3,155 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #09090b; /* Shadcn dark background (zinc-950) */
-  position: relative;
+  background: #09090b;
 }
 
+/* ── Toolbar ─────────────────────────────────── */
 .toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
-  background: rgba(9, 9, 11, 0.85); /* Transparent for glass effect */
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08); /* Subtle Shadcn border */
-  z-index: 50;
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  padding: 8px 14px;
+  background: rgba(9, 9, 11, 0.95);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+  z-index: 10;
 }
 
 .controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 2px;
 }
 
 .iconBtn {
   background: transparent;
-  border: 1px solid transparent;
-  color: #a1a1aa; /* zinc-400 */
+  border: none;
+  color: #a1a1aa;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px; /* Shadcn typically uses small rounded rects */
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s, color 0.12s;
 }
 
-.iconBtn:active, .iconBtn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #f4f4f5; /* zinc-100 */
+.iconBtn:active {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.scaleBtn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #d4d4d8;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  min-width: 46px;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .pageInfo {
-  font-weight: 500;
+  font-weight: 600;
   color: #f4f4f5;
-  font-size: 0.85rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.82rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.09);
   padding: 4px 12px;
   border-radius: 20px;
-  min-width: 60px;
+  min-width: 64px;
   text-align: center;
-  letter-spacing: 0.5px;
 }
 
+/* ── Viewer Area ─────────────────────────────── */
 .viewerArea {
   flex: 1;
   overflow: hidden;
-  position: relative;
-  padding-top: 60px; /* Space for absolute toolbar */
+  min-height: 0;
 }
 
-.scrollContainer {
+/* react-pdf Document must fill the area */
+.viewerArea :global(.react-pdf__Document) {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Scroll Container ────────────────────────── */
+.scrollContainer {
+  flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
   height: 100%;
-  /* Optional: snap to pages vertically */
-  scroll-snap-type: y proximity;
-  /* Hide scrollbar */
   scrollbar-width: none;
   -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .scrollContainer::-webkit-scrollbar {
   display: none;
 }
 
+/* ── Pages Inner Wrapper (CSS-scaled for zoom) ─ */
+.pagesWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  transition: transform 0.2s ease;
+  will-change: transform;
+}
+
+/* ── Individual Page Wrapper ─────────────────── */
 .pageWrapper {
-  flex: 0 0 auto;
   width: 100%;
   display: flex;
-  align-items: center;
   justify-content: center;
-  scroll-snap-align: center;
-  padding: 16px 0;
+  padding: 6px 0;
 }
 
-/* Make pdf pages centered and responsive */
-.viewerArea :global(.react-pdf__Document) {
-  width: 100%;
-  height: 100%;
+.viewerArea :global(.react-pdf__Page canvas) {
   display: block;
+  max-width: 100%;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.6);
 }
 
-.viewerArea :global(.react-pdf__Page) {
-  margin: var(--spacing-md) 0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  background-color: white !important; /* PDF needs white bg */
+/* ── Placeholder while page renders ─────────── */
+.pagePlaceholder {
+  background: linear-gradient(135deg, #18181b 0%, #1c1c1f 100%);
+  border-radius: 2px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .viewerArea :global(.react-pdf__Page canvas) {
-    /* Optional: invert colors for dark mode reading if desired */
-    /* filter: invert(1) hue-rotate(180deg); */
-  }
-}
-
+/* ── Loading / Error State ───────────────────── */
 .loader {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--text-muted);
-  gap: var(--spacing-md);
+  min-height: 200px;
+  color: #52525b;
+  gap: 14px;
+  font-size: 0.88rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(255,255,255,0.07);
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
 }
