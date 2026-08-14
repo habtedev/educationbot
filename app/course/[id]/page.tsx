@@ -71,10 +71,14 @@ export default function CourseViewer({ params }: { params: Promise<{ id: string 
           // Serve immediately for fast load
           setPdfUrl(originalUrl);
           
-          // Background cache it for offline use
-          import('../../../lib/cache').then(({ cachePdf }) => {
-            cachePdf(originalUrl).catch(console.error);
-          });
+          // Delay background caching by 3 seconds so it doesn't steal internet bandwidth from the PDF viewer's initial load
+          setTimeout(() => {
+            if (active) {
+              import('../../../lib/cache').then(({ cachePdf }) => {
+                cachePdf(originalUrl).catch(console.error);
+              });
+            }
+          }, 3000);
         }
       }
     };
