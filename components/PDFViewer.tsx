@@ -20,9 +20,8 @@ const PAGE_RATIO = 1.414;
 
 interface PDFViewerProps {
   courseId: string;
-  // Accepts: pre-parsed PDFDocumentProxy | { data: ArrayBuffer } | URL string
-  // Pre-parsed proxy = instant render, no loading state at all
   file: unknown;
+  fallbackUrl?: string;
 }
 
 interface VirtualPageProps {
@@ -34,16 +33,13 @@ interface VirtualPageProps {
 }
 
 // ─── Virtual Page ──────────────────────────────────────────────────────────
-// Each page is a placeholder div. The real <Page> only renders when
-// the placeholder enters the viewport. This is the key to instant opening:
-// instead of rendering 234 pages, we only render ~2-3 visible ones.
 const VirtualPage = ({ pageNumber, width, scale, scrollRoot, onVisible }: VirtualPageProps) => {
   const [shouldRender, setShouldRender] = useState(pageNumber <= 5); // render first 5 pages immediately
   const wrapperRef = useRef<HTMLDivElement>(null);
   const pageH = width * PAGE_RATIO;
 
   useEffect(() => {
-    if (shouldRender) return; // already rendering
+    if (shouldRender) return;
     const el = wrapperRef.current;
     if (!el || !scrollRoot) return;
 
@@ -56,7 +52,6 @@ const VirtualPage = ({ pageNumber, width, scale, scrollRoot, onVisible }: Virtua
       },
       {
         root: scrollRoot,
-        // Pre-render 2.5 screen heights BEFORE scrolling into view for ultra-smooth scrolling
         rootMargin: `${Math.round(window.innerHeight * 2.5)}px 0px ${Math.round(window.innerHeight * 2.5)}px 0px`,
         threshold: 0,
       }
@@ -108,7 +103,6 @@ const VirtualPage = ({ pageNumber, width, scale, scrollRoot, onVisible }: Virtua
           }
         />
       ) : (
-        // Skeleton placeholder — correct height so scrollbar is accurate
         <div
           className={styles.pagePlaceholder}
           style={{ width: width * scale, height: pageH * scale }}
@@ -119,16 +113,22 @@ const VirtualPage = ({ pageNumber, width, scale, scrollRoot, onVisible }: Virtua
 };
 
 // ─── Main PDFViewer ────────────────────────────────────────────────────────
-export const PDFViewer = ({ courseId, file }: PDFViewerProps) => {
+export const PDFViewer = ({ courseId, file, fallbackUrl }: PDFViewerProps) => {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [scale, setScale] = useState<number>(1.0);
+  const [currentFile, setCurrentFile] = useState<unknown>(file);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { progress, updateProgress } = useCourseStore();
 
   const pageWidth = useRef<number>(
     typeof window !== 'undefined' ? Math.min(window.innerWidth, 768) : 360
   );
+
+  // Sync prop changes
+  useEffect(() => {
+    setCurrentFile(file);
+  }, [file]);
 
   // Restore saved page on mount only
   useEffect(() => {
@@ -141,6 +141,13 @@ export const PDFViewer = ({ courseId, file }: PDFViewerProps) => {
   const onDocumentLoadSuccess = useCallback(({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
   }, []);
+
+  const onDocumentLoadError = useCallback(() => {
+    // If RAM buffer failed, auto-fallback to URL string
+    if (fallbackUrl && currentFile !== fallbackUrl) {
+      setCurrentFile(fallbackUrl);
+    }
+  }, [fallbackUrl, currentFile]);
 
   const onPageVisible = useCallback((page: number) => {
     setPageNumber(page);
@@ -172,9 +179,10 @@ export const PDFViewer = ({ courseId, file }: PDFViewerProps) => {
 
       <div className={styles.viewerArea}>
         <Document
-          file={file as any}
+          file={currentFile as any}
           options={PDF_OPTIONS}
           onLoadSuccess={onDocumentLoadSuccess}
+          onLoadError={onDocumentLoadError}
           loading={
             <div className={styles.loader}>
               <div className={styles.spinner} />
@@ -183,7 +191,7 @@ export const PDFViewer = ({ courseId, file }: PDFViewerProps) => {
           }
           error={
             <div className={styles.loader}>
-              <span>❌ Could not load PDF.</span>
+              <span>❌ Could not load PDF. Please tap back and open again.</span>
             </div>
           }
         >

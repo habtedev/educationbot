@@ -194,8 +194,12 @@ export default function Home() {
               </button>
             </header>
 
-            {Boolean(pdfFile) && (
-              <PDFViewer courseId={openCourseId!} file={pdfFile} />
+            {Boolean(openCourse) && (
+              <PDFViewer
+                courseId={openCourseId!}
+                file={getBestPdfFile(`/courses/${openCourse!.file}`)}
+                fallbackUrl={`/courses/${openCourse!.file}`}
+              />
             )}
           </>
         )}
