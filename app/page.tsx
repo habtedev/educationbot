@@ -7,7 +7,7 @@ import { SearchBar } from '../components/SearchBar';
 import { CourseCard } from '../components/CourseCard';
 import { ProgressDialog } from '../components/ProgressDialog';
 import { checkIsCached, cachePdf } from '../lib/cache';
-import { initPdfWorker, preloadCachedPdfs, getBestPdfUrl } from '../lib/pdfPreloader';
+import { initPdfWorker, preloadCachedPdfs, getBestPdfFile, isPreloaded } from '../lib/pdfPreloader';
 import { useCourseStore } from '../store/useCourseStore';
 import styles from './page.module.css';
 
@@ -40,7 +40,9 @@ export default function Home() {
   // Instead of router.push() (causes white flash), we just show/hide an overlay.
   const [openCourseId, setOpenCourseId] = useState<string | null>(null);
   const openCourse = AVAILABLE_COURSES.find(c => c.id === openCourseId) ?? null;
-  const pdfUrl = openCourse ? getBestPdfUrl(`/courses/${openCourse.file}`) : null;
+  // getBestPdfFile returns: pre-parsed doc > ArrayBuffer > URL string
+  // Pre-parsed doc = zero loading time, renders page 1 instantly
+  const pdfFile = openCourse ? getBestPdfFile(`/courses/${openCourse.file}`) : null;
 
   const { favorites, toggleFavorite } = useCourseStore();
 
@@ -190,8 +192,8 @@ export default function Home() {
               </button>
             </header>
 
-            {pdfUrl && (
-              <PDFViewer courseId={openCourseId!} url={pdfUrl} />
+            {pdfFile && (
+              <PDFViewer courseId={openCourseId!} file={pdfFile} />
             )}
           </>
         )}

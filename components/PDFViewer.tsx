@@ -20,10 +20,12 @@ const PAGE_RATIO = 1.414;
 
 interface PDFViewerProps {
   courseId: string;
-  url: string;
+  // Accepts: pre-parsed PDFDocumentProxy | { data: ArrayBuffer } | URL string
+  // Pre-parsed proxy = instant render, no loading state at all
+  file: unknown;
 }
 
-// ─── Virtual Page ──────────────────────────────────────────────────────────
+const VirtualPage = ({ pageNumber, width, scale, scrollRoot, onVisible }: VirtualPageProps) => {
 // Each page is a placeholder div. The real <Page> only renders when
 // the placeholder enters the viewport. This is the key to instant opening:
 // instead of rendering 234 pages, we only render ~2-3 visible ones.
@@ -117,7 +119,7 @@ const VirtualPage = ({ pageNumber, width, scale, scrollRoot, onVisible }: Virtua
 };
 
 // ─── Main PDFViewer ────────────────────────────────────────────────────────
-export const PDFViewer = ({ courseId, url }: PDFViewerProps) => {
+export const PDFViewer = ({ courseId, file }: PDFViewerProps) => {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [scale, setScale] = useState<number>(1.0);
@@ -170,7 +172,7 @@ export const PDFViewer = ({ courseId, url }: PDFViewerProps) => {
 
       <div className={styles.viewerArea}>
         <Document
-          file={url}
+          file={file as any}
           options={PDF_OPTIONS}
           onLoadSuccess={onDocumentLoadSuccess}
           loading={
