@@ -94,10 +94,13 @@ export default function Home() {
     try {
       let completed = 0;
       for (const course of AVAILABLE_COURSES) {
+        const url = `/courses/${course.file}`;
         if (!cachedStatus[course.id]) {
-          await cachePdf(`/courses/${course.file}`);
+          await cachePdf(url);
           setCachedStatus(prev => ({ ...prev, [course.id]: true }));
         }
+        // Immediately start preloading to RAM & pre-parsing
+        preloadCachedPdfs([url]);
         completed++;
         setDownloadProgress(Math.round((completed / AVAILABLE_COURSES.length) * 100));
       }

@@ -94,13 +94,12 @@ const preloadDocument = async (url: string): Promise<void> => {
 export const preloadCachedPdfs = (urls: string[]): void => {
   if (typeof window === 'undefined' || !('caches' in window)) return;
   urls.forEach((url, i) => {
-    // Stagger: buffer first, then parse after a short delay
+    // Fast stagger: buffer into RAM immediately, then pre-parse document
     setTimeout(() => {
       preloadBuffer(url).then(() => {
-        // Parse AFTER buffer is ready, staggered further to not block rendering
-        setTimeout(() => preloadDocument(url), 500);
+        setTimeout(() => preloadDocument(url), 50);
       });
-    }, i * 300);
+    }, i * 50);
   });
 };
 
