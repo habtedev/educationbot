@@ -56,8 +56,8 @@ const VirtualPage = ({ pageNumber, width, scale, scrollRoot, onVisible }: Virtua
       },
       {
         root: scrollRoot,
-        // Start rendering 1 full screen height BEFORE the page scrolls into view
-        rootMargin: `${window.innerHeight}px 0px ${window.innerHeight}px 0px`,
+        // Pre-render 2.5 screen heights BEFORE scrolling into view for ultra-smooth scrolling
+        rootMargin: `${Math.round(window.innerHeight * 2.5)}px 0px ${Math.round(window.innerHeight * 2.5)}px 0px`,
         threshold: 0,
       }
     );

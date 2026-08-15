@@ -54,13 +54,12 @@ const withPWA = withPWAInit({
         },
       },
       {
-        // App pages — Network first with offline fallback
+        // App pages — StaleWhileRevalidate for 0ms instant offline load!
         urlPattern: /^https?.*/,
-        handler: 'NetworkFirst',
+        handler: 'StaleWhileRevalidate',
         options: {
           cacheName: 'app-shell-v1',
-          networkTimeoutSeconds: 10,
-          expiration: { maxEntries: 200, maxAgeSeconds: 30 * 24 * 60 * 60 },
+          expiration: { maxEntries: 200, maxAgeSeconds: 365 * 24 * 60 * 60 },
         },
       },
     ],
