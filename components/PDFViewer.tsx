@@ -161,8 +161,68 @@ export const PDFViewer = ({ courseId, file, fallbackUrl }: PDFViewerProps) => {
   }, [courseId, numPages, updateProgress]);
 
   const handleZoomIn = useCallback(() => setScale(s => Math.min(+(s + 0.25).toFixed(2), 3.0)), []);
-  const handleZoomOut = useCallback(() => setScale(s => Math.max(+(s - 0.25).toFixed(2), 0.5)), []);
+  const handleZoomOut = useCallback(() => setScale(s => Math.max(+(s - 0.25).toFixed(2), 0.75)), []);
   const handleResetZoom = useCallback(() => setScale(1.0), []);
+
+  // ─── Touch Pinch-to-Zoom & Double-Tap Gestures ───────────────────────────
+  const initialPinchDistRef = useRef<number | null>(null);
+  const initialScaleRef = useRef<number>(1.0);
+  const lastTapTimeRef = useRef<number>(0);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        initialPinchDistRef.current = Math.hypot(t1.pageX - t2.pageX, t1.pageY - t2.pageY);
+        initialScaleRef.current = scale;
+      } else if (e.touches.length === 1) {
+        const now = Date.now();
+        if (now - lastTapTimeRef.current < 300) {
+          // Double-tap toggle zoom
+          setScale(s => (s > 1.2 ? 1.0 : 1.75));
+          lastTapTimeRef.current = 0;
+        } else {
+          lastTapTimeRef.current = now;
+        }
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && initialPinchDistRef.current !== null) {
+        e.preventDefault();
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        const currentDist = Math.hypot(t1.pageX - t2.pageX, t1.pageY - t2.pageY);
+        if (initialPinchDistRef.current > 0) {
+          const rawScale = initialScaleRef.current * (currentDist / initialPinchDistRef.current);
+          const clampedScale = Math.min(Math.max(+rawScale.toFixed(2), 0.75), 3.0);
+          setScale(clampedScale);
+        }
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        initialPinchDistRef.current = null;
+      }
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
+    container.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, [scale]);
 
   return (
     <div className={styles.container}>
