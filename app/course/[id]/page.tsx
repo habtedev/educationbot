@@ -1,20 +1,24 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Star } from 'lucide-react';
-import { checkIsCached } from '../../../lib/cache';
 import { useCourseStore } from '../../../store/useCourseStore';
+import { getBestPdfUrl } from '../../../lib/pdfPreloader';
 import styles from './page.module.css';
 
-// Dynamic import with ssr:false prevents react-pdf from running during
-// static pre-rendering (which fails with "DOMMatrix is not defined")
+// Dynamic import with ssr:false — needed to prevent DOMMatrix error during static build.
+// The PDFViewer chunk is small and will be prefetched by Next.js automatically.
 const PDFViewer = dynamic(
   () => import('../../../components/PDFViewer').then(m => ({ default: m.PDFViewer })),
-  { ssr: false, loading: () => <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', color: '#52525b' }}>Opening PDF...</div> }
+  {
+    ssr: false,
+    // No loading spinner here — the PDFViewer itself shows its own spinner.
+    // Showing nothing avoids a double-flash of "Opening PDF..." then spinner.
+    loading: () => null,
+  }
 );
-
 
 const AVAILABLE_COURSES = {
   'anthropology': { title: 'Anthropology', file: 'Anthropology.pdf' },
@@ -26,29 +30,26 @@ const AVAILABLE_COURSES = {
   'psychology': { title: 'Psychology', file: 'Psychology.pdf' },
 } as Record<string, { title: string, file: string }>;
 
-// This is the key fix for full offline support!
-// By exporting generateStaticParams, Next.js pre-builds ALL 7 course pages
-// as static HTML files at build time. This changes the route from:
-//   ƒ (Dynamic - requires server/internet on every visit) 
-// to:
-//   ○ (Static - pre-built HTML, works 100% offline from PWA cache)
-// NOTE: This export lives in a separate layout.tsx (server component) since
-// 'use client' pages cannot export generateStaticParams directly.
-
 export default function CourseViewer({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id } = use(params);
-  
+
   const course = AVAILABLE_COURSES[id];
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [error, setError] = useState(false);
+  const activeRef = useRef(true);
 
   const { favorites, toggleFavorite } = useCourseStore();
   const isFavorite = favorites.includes(id);
 
+  // FIX 1: Compute the best URL immediately on first render.
+  // getBestPdfUrl checks if this PDF was already pre-loaded as a blob URL
+  // in memory (by pdfPreloader.ts on the home page). If yes → instant render.
+  // If no → falls back to original URL, Service Worker serves from cache.
+  const originalUrl = course ? `/courses/${course.file}` : null;
+  const pdfUrl = originalUrl ? getBestPdfUrl(originalUrl) : null;
+
+  // Telegram back button
   useEffect(() => {
     let WebApp: any = null;
-
     const init = async () => {
       if (typeof window !== 'undefined') {
         WebApp = (await import('@twa-dev/sdk')).default;
@@ -59,56 +60,37 @@ export default function CourseViewer({ params }: { params: Promise<{ id: string 
       }
     };
     init();
-
     return () => {
-      if (WebApp && WebApp.initData) {
+      if (WebApp?.initData) {
         WebApp.BackButton.hide();
         WebApp.BackButton.offClick(() => router.back());
       }
     };
   }, [router]);
 
+  // Background cache — use originalUrl (not blob URL) for the cache key
   useEffect(() => {
-    if (!course) {
-      setError(true);
-      return;
-    }
+    if (!originalUrl) return;
+    activeRef.current = true;
 
-    let active = true;
-
-    const loadPdf = async () => {
-      const originalUrl = `/courses/${course.file}`;
-      const isCached = await checkIsCached(originalUrl);
-      
-      if (active) {
-        // ALWAYS use the original URL.
-        // The Service Worker will instantly intercept this and serve HTTP Range Requests directly from the offline cache!
-        setPdfUrl(originalUrl);
-        
-        if (!isCached) {
-          // Delay background caching by 3 seconds so it doesn't steal internet bandwidth from the PDF viewer's initial load
-          setTimeout(() => {
-            if (active) {
-              import('../../../lib/cache').then(({ cachePdf }) => {
-                cachePdf(originalUrl).catch(console.error);
-              });
-            }
-          }, 3000);
+    const timer = setTimeout(async () => {
+      if (!activeRef.current) return;
+      try {
+        const { checkIsCached, cachePdf } = await import('../../../lib/cache');
+        const cached = await checkIsCached(originalUrl);
+        if (!cached && activeRef.current) {
+          cachePdf(originalUrl).catch(() => {});
         }
-      }
-    };
-
-    loadPdf();
+      } catch {}
+    }, 2000);
 
     return () => {
-      active = false;
-      if (pdfUrl && pdfUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(pdfUrl);
-      }
+      activeRef.current = false;
+      clearTimeout(timer);
     };
-  }, [course, pdfUrl]);
+  }, [originalUrl]);
 
-  if (error || !course) {
+  if (!course) {
     return (
       <main className={styles.main}>
         <div style={{ padding: 20, textAlign: 'center', marginTop: 100 }}>
@@ -129,7 +111,7 @@ export default function CourseViewer({ params }: { params: Promise<{ id: string 
         </button>
         <h2 className={styles.title}>{course.title}</h2>
         <div className={styles.actions}>
-          <button 
+          <button
             className={`${styles.iconBtn} ${isFavorite ? styles.active : ''}`}
             onClick={() => toggleFavorite(id)}
           >
@@ -138,13 +120,9 @@ export default function CourseViewer({ params }: { params: Promise<{ id: string 
         </div>
       </header>
 
-      {pdfUrl ? (
-        <PDFViewer courseId={id} url={pdfUrl} />
-      ) : (
-        <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          Loading course...
-        </div>
-      )}
+      {/* FIX 3: Always render PDFViewer immediately — never conditionally hide it.
+          pdfUrl is now always ready on first render so there's zero delay. */}
+      {pdfUrl && <PDFViewer courseId={id} url={pdfUrl} />}
     </main>
   );
 }

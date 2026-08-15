@@ -7,6 +7,7 @@ import { SearchBar } from '../components/SearchBar';
 import { CourseCard } from '../components/CourseCard';
 import { ProgressDialog } from '../components/ProgressDialog';
 import { checkIsCached, cachePdf } from '../lib/cache';
+import { initPdfWorker, preloadCachedPdfs } from '../lib/pdfPreloader';
 import styles from './page.module.css';
 
 // Added description for the course subtitles seen in the image
@@ -32,8 +33,13 @@ export default function Home() {
 
   const checkCacheStatus = () => {
     AVAILABLE_COURSES.forEach(async (course) => {
-      const cached = await checkIsCached(`/courses/${course.file}`);
+      const url = `/courses/${course.file}`;
+      const cached = await checkIsCached(url);
       setCachedStatus(prev => ({ ...prev, [course.id]: cached }));
+      // If cached, immediately start reading it into memory as a blob URL
+      if (cached) {
+        preloadCachedPdfs([url]);
+      }
     });
   };
 
@@ -41,12 +47,16 @@ export default function Home() {
     setIsClient(true);
     checkCacheStatus();
 
-    // Re-check when returning to the page (e.g., coming back from a course view)
+    // Warm up the PDF.js worker immediately so it's ready when user taps a course
+    initPdfWorker();
+
+    // Prefetch the PDFViewer JS chunk silently
+    import('../components/PDFViewer').catch(() => {});
+
+    // Re-check when returning to the page
     window.addEventListener('focus', checkCacheStatus);
-    
-    // Fallback interval to catch background downloads completing while on the home page
     const interval = setInterval(checkCacheStatus, 3000);
-    
+
     return () => {
       window.removeEventListener('focus', checkCacheStatus);
       clearInterval(interval);

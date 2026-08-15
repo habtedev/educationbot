@@ -26,11 +26,12 @@ console.log(`🔗 Web App URL configured as: ${appUrl}`);
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
 
-  const welcomeMessage = `📚 Welcome to the Educational platform!
+  const welcomeMessage = `● እንኳን ወደ A to Z Tutorial MiniApp በሰላም መጡ! 🎉
 
-✨ A to Z Tutorial
+🔝 ይህ መተግበሪያ ትምህርትን ቀለል ባለ መንገድ ለመረዳት ተብሎ በአማርኛ እና በእንግሊዘኛ የተብራሩ ጥራት ያላቸውን ማስታወሻዎች ይዟል።✨
 
-Click the button below to start learning!`;
+የተዘጋጁትን ኖቶች ለመጠቀም ከታች ያለውን
+"Open Note" የሚለውን ይጫኑ።`;
 
   const options = {
     protect_content: true,
@@ -38,7 +39,7 @@ Click the button below to start learning!`;
       inline_keyboard: [
         [
           {
-            text: '🚀 Start Learning',
+            text: '📖 Open Note',
             web_app: { url: appUrl },
           },
         ],
