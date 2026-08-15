@@ -1,18 +1,23 @@
 /**
- * PDF Preloader — Ultra-fast RAM caching for react-pdf.
+ * PDF Preloader — Ultra-fast RAM caching with STABLE OBJECT REFERENCES for react-pdf.
  *
  * Pre-reads PDF binary files directly from CacheStorage into RAM Uint8Arrays
- * on home page load. When a course is opened, react-pdf receives raw RAM bytes:
- *   file = { data: Uint8Array }
+ * on home page load. Stores stable object references in a Map so react-pdf receives
+ * the EXACT SAME object instance on every render.
  *
- * This bypasses 100% of network latency, Service Worker overhead, and HTTP range requests.
- * Opens PDF instantly in < 200ms.
+ * This prevents react-pdf from detecting a "file change", which previously caused
+ * worker task cancellations, document reloads, and hard refreshes.
  */
 
 const CACHE_NAME = 'pdf-cache-v1';
 
-// In-memory RAM store: PDF URL → ArrayBuffer
+// In-memory RAM store: PDF URL -> ArrayBuffer
 const preloadedBuffers = new Map<string, ArrayBuffer>();
+
+// STABLE OBJECT REFERENCES store: PDF URL -> { data: Uint8Array }
+// Crucial: react-pdf compares `file === prevProps.file`. If a new object is returned
+// on each render, react-pdf destroys the worker thread and reloads from page 1!
+const preloadedFileObjects = new Map<string, { data: Uint8Array }>();
 
 let workerInitialized = false;
 
@@ -29,7 +34,7 @@ export const initPdfWorker = (): void => {
 };
 
 /**
- * Pre-read a single cached PDF into RAM as an ArrayBuffer.
+ * Pre-read a single cached PDF into RAM as an ArrayBuffer & create stable object reference.
  */
 export const preloadBuffer = async (url: string): Promise<ArrayBuffer | null> => {
   if (preloadedBuffers.has(url)) return preloadedBuffers.get(url)!;
@@ -40,6 +45,8 @@ export const preloadBuffer = async (url: string): Promise<ArrayBuffer | null> =>
       const buffer = await response.arrayBuffer();
       if (buffer.byteLength > 0) {
         preloadedBuffers.set(url, buffer);
+        // Create STABLE object reference for react-pdf file prop
+        preloadedFileObjects.set(url, { data: new Uint8Array(buffer) });
         return buffer;
       }
     }
@@ -65,18 +72,16 @@ export const preloadCachedPdfs = (urls: string[]): void => {
  * Get the exact file prop object for react-pdf's <Document file={...}>.
  *
  * Returns:
- *   1. { data: Uint8Array } if pre-loaded in RAM (INSTANT 0ms fetch!)
+ *   1. Stable { data: Uint8Array } reference if pre-loaded in RAM (INSTANT 0ms fetch & NO worker reload!)
  *   2. originalUrl string if not preloaded (Service Worker serves from cache)
  */
 export const getBestPdfFile = (originalUrl: string): unknown => {
-  if (preloadedBuffers.has(originalUrl)) {
-    const buffer = preloadedBuffers.get(originalUrl)!;
-    // Clone slice so react-pdf doesn't detach original buffer
-    return { data: new Uint8Array(buffer.slice(0)) };
+  if (preloadedFileObjects.has(originalUrl)) {
+    return preloadedFileObjects.get(originalUrl)!; // RETURN EXACT SAME REF!
   }
   return originalUrl;
 };
 
 export const getBestPdfUrl = (originalUrl: string): string => originalUrl;
 
-export const isPreloaded = (url: string): boolean => preloadedBuffers.has(url);
+export const isPreloaded = (url: string): boolean => preloadedFileObjects.has(url);

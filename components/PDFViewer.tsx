@@ -38,7 +38,7 @@ interface VirtualPageProps {
 // the placeholder enters the viewport. This is the key to instant opening:
 // instead of rendering 234 pages, we only render ~2-3 visible ones.
 const VirtualPage = ({ pageNumber, width, scale, scrollRoot, onVisible }: VirtualPageProps) => {
-  const [shouldRender, setShouldRender] = useState(pageNumber <= 2); // render first 2 pages immediately
+  const [shouldRender, setShouldRender] = useState(pageNumber <= 5); // render first 5 pages immediately
   const wrapperRef = useRef<HTMLDivElement>(null);
   const pageH = width * PAGE_RATIO;
 
