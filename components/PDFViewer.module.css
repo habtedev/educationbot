@@ -89,30 +89,30 @@
 .scrollContainer {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
   height: 100%;
   scrollbar-width: none;
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
 }
 
 .scrollContainer::-webkit-scrollbar {
   display: none;
 }
 
-/* ── Pages Inner Wrapper (CSS-scaled for zoom) ─ */
+/* ── Pages Inner Wrapper ─────────────────────── */
 .pagesWrap {
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 100%;
-  transition: transform 0.2s ease;
-  will-change: transform;
 }
 
 /* ── Individual Page Wrapper ─────────────────── */
 .pageWrapper {
   width: 100%;
+  min-width: max-content;
   display: flex;
   justify-content: center;
   padding: 6px 0;
@@ -120,8 +120,10 @@
 
 .viewerArea :global(.react-pdf__Page canvas) {
   display: block;
-  max-width: 100%;
-  box-shadow: 0 2px 20px rgba(0,0,0,0.6);
+  max-width: none !important;
+  height: auto !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+  border-radius: 2px;
 }
 
 /* ── Placeholder while page renders ─────────── */

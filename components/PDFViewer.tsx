@@ -81,6 +81,10 @@ const VirtualPage = ({ pageNumber, width, scale, scrollRoot, onVisible }: Virtua
     return () => observer.disconnect();
   }, [scrollRoot, pageNumber, onVisible]);
 
+  const dpr = typeof window !== 'undefined'
+    ? Math.min(Math.max(window.devicePixelRatio || 1, 2), 3)
+    : 2;
+
   return (
     <div
       ref={wrapperRef}
@@ -93,6 +97,7 @@ const VirtualPage = ({ pageNumber, width, scale, scrollRoot, onVisible }: Virtua
           pageNumber={pageNumber}
           width={width}
           scale={scale}
+          devicePixelRatio={dpr}
           renderTextLayer={false}
           renderAnnotationLayer={false}
           loading={
