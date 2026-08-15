@@ -6,86 +6,148 @@ import { ZoomIn, ZoomOut } from 'lucide-react';
 import { useCourseStore } from '../store/useCourseStore';
 import styles from './PDFViewer.module.css';
 
-// Worker is local — cached offline by PWA
 pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
 
-// CRITICAL: Keep options object OUTSIDE component so it never changes reference.
-// If created inside, React re-creates it on every render → Document reloads → white screen!
+// Kept outside — never changes, prevents Document from reloading
 const PDF_OPTIONS = {
   cMapUrl: '/cmaps/',
   cMapPacked: true,
   standardFontDataUrl: '/standard_fonts/',
 };
 
+// A4 ratio
+const PAGE_RATIO = 1.414;
+
 interface PDFViewerProps {
   courseId: string;
   url: string;
 }
 
+// ─── Virtual Page ──────────────────────────────────────────────────────────
+// Each page is a placeholder div. The real <Page> only renders when
+// the placeholder enters the viewport. This is the key to instant opening:
+// instead of rendering 234 pages, we only render ~2-3 visible ones.
+interface VirtualPageProps {
+  pageNumber: number;
+  width: number;
+  scale: number;
+  scrollRoot: HTMLDivElement | null;
+  onVisible: (page: number) => void;
+}
+
+const VirtualPage = ({ pageNumber, width, scale, scrollRoot, onVisible }: VirtualPageProps) => {
+  const [shouldRender, setShouldRender] = useState(pageNumber <= 2); // render first 2 pages immediately
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const pageH = width * PAGE_RATIO;
+
+  useEffect(() => {
+    if (shouldRender) return; // already rendering
+    const el = wrapperRef.current;
+    if (!el || !scrollRoot) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShouldRender(true);
+          observer.disconnect();
+        }
+      },
+      {
+        root: scrollRoot,
+        // Start rendering 1 full screen height BEFORE the page scrolls into view
+        rootMargin: `${window.innerHeight}px 0px ${window.innerHeight}px 0px`,
+        threshold: 0,
+      }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [scrollRoot, shouldRender]);
+
+  // Track current page via center-line intersection
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el || !scrollRoot) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) onVisible(pageNumber);
+      },
+      {
+        root: scrollRoot,
+        rootMargin: '-45% 0px -45% 0px',
+        threshold: 0,
+      }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [scrollRoot, pageNumber, onVisible]);
+
+  return (
+    <div
+      ref={wrapperRef}
+      className={styles.pageWrapper}
+      data-page={pageNumber}
+      style={{ height: pageH * scale }}
+    >
+      {shouldRender ? (
+        <Page
+          pageNumber={pageNumber}
+          width={width}
+          scale={scale}
+          renderTextLayer={false}
+          renderAnnotationLayer={false}
+          loading={
+            <div
+              className={styles.pagePlaceholder}
+              style={{ width: width * scale, height: pageH * scale }}
+            />
+          }
+        />
+      ) : (
+        // Skeleton placeholder — correct height so scrollbar is accurate
+        <div
+          className={styles.pagePlaceholder}
+          style={{ width: width * scale, height: pageH * scale }}
+        />
+      )}
+    </div>
+  );
+};
+
+// ─── Main PDFViewer ────────────────────────────────────────────────────────
 export const PDFViewer = ({ courseId, url }: PDFViewerProps) => {
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState<number>(1);
-  // scale is CSS-only — we never pass it to <Page>, so PDF never re-renders on zoom!
   const [scale, setScale] = useState<number>(1.0);
-
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const pagesWrapRef = useRef<HTMLDivElement>(null);
-  const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const { progress, updateProgress } = useCourseStore();
 
-  // Measure actual screen width once
   const pageWidth = useRef<number>(
     typeof window !== 'undefined' ? Math.min(window.innerWidth, 768) : 360
   );
 
-  // Restore saved progress on mount only
+  // Restore saved page on mount only
   useEffect(() => {
     const saved = progress[courseId];
     if (saved?.page && saved.page > 1) {
       setPageNumber(saved.page);
     }
-  }, [courseId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [courseId]); // eslint-disable-line
 
   const onDocumentLoadSuccess = useCallback(({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
   }, []);
 
-  // Re-attach IntersectionObserver whenever pages re-render
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container || numPages === 0) return;
+  const onPageVisible = useCallback((page: number) => {
+    setPageNumber(page);
+    updateProgress(courseId, page, numPages);
+  }, [courseId, numPages, updateProgress]);
 
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const page = Number(entry.target.getAttribute('data-page'));
-          if (page) {
-            setPageNumber(page);
-            updateProgress(courseId, page, numPages);
-          }
-        }
-      });
-    }, {
-      root: container,
-      rootMargin: '-45% 0px -45% 0px',
-      threshold: 0,
-    });
-
-    pageRefs.current.forEach((el) => { if (el) observer.observe(el); });
-    return () => observer.disconnect();
-  }, [numPages, courseId, updateProgress]);
-
-  const setPageRef = useCallback((el: HTMLDivElement | null, pageNum: number) => {
-    if (el) pageRefs.current.set(pageNum, el);
-    else pageRefs.current.delete(pageNum);
-  }, []);
-
-  // Zoom uses CSS transform on the wrapper — ZERO PDF re-renders, purely GPU!
   const handleZoomIn = useCallback(() => setScale(s => Math.min(+(s + 0.25).toFixed(2), 3.0)), []);
   const handleZoomOut = useCallback(() => setScale(s => Math.max(+(s - 0.25).toFixed(2), 0.5)), []);
   const handleResetZoom = useCallback(() => setScale(1.0), []);
-
-  const estimatedPageHeight = pageWidth.current * 1.414;
 
   return (
     <div className={styles.container}>
@@ -93,7 +155,6 @@ export const PDFViewer = ({ courseId, url }: PDFViewerProps) => {
         <span className={styles.pageInfo}>
           {pageNumber} / {numPages || '—'}
         </span>
-
         <div className={styles.controls}>
           <button onClick={handleZoomOut} className={styles.iconBtn} aria-label="Zoom out">
             <ZoomOut size={18} />
@@ -124,51 +185,21 @@ export const PDFViewer = ({ courseId, url }: PDFViewerProps) => {
             </div>
           }
         >
-          {/* scrollContainer is the real scrollable area */}
           <div
             className={styles.scrollContainer}
             id="pdf-scroll-container"
             ref={scrollContainerRef}
           >
-            {/* pagesWrap is the CSS-scaled inner wrapper — zoom is purely visual, no re-renders */}
-            <div
-              ref={pagesWrapRef}
-              className={styles.pagesWrap}
-              style={{
-                transform: `scale(${scale})`,
-                transformOrigin: 'top center',
-                // Adjust scroll height so the scrollbar stays correct when zoomed
-                paddingBottom: scale > 1 ? `${(scale - 1) * estimatedPageHeight * numPages}px` : 0,
-              }}
-            >
-              {numPages > 0 && Array.from({ length: numPages }, (_, i) => {
-                const p = i + 1;
-                return (
-                  <div
-                    key={`page_${p}`}
-                    className={styles.pageWrapper}
-                    data-page={p}
-                    ref={(el) => setPageRef(el, p)}
-                  >
-                    <Page
-                      pageNumber={p}
-                      width={pageWidth.current}
-                      renderTextLayer={false}
-                      renderAnnotationLayer={false}
-                      loading={
-                        <div
-                          className={styles.pagePlaceholder}
-                          style={{
-                            width: pageWidth.current,
-                            height: estimatedPageHeight,
-                          }}
-                        />
-                      }
-                    />
-                  </div>
-                );
-              })}
-            </div>
+            {numPages > 0 && Array.from({ length: numPages }, (_, i) => (
+              <VirtualPage
+                key={i + 1}
+                pageNumber={i + 1}
+                width={pageWidth.current}
+                scale={scale}
+                scrollRoot={scrollContainerRef.current}
+                onVisible={onPageVisible}
+              />
+            ))}
           </div>
         </Document>
       </div>
