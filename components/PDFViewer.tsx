@@ -125,10 +125,11 @@ export const PDFViewer = ({ courseId, file, fallbackUrl }: PDFViewerProps) => {
     typeof window !== 'undefined' ? Math.min(window.innerWidth, 768) : 360
   );
 
-  // Sync prop changes
+  // Sync prop changes and reset numPages to prevent stale state on re-open
   useEffect(() => {
     setCurrentFile(file);
-  }, [file]);
+    setNumPages(0);
+  }, [file, courseId]);
 
   // Restore saved page on mount only
   useEffect(() => {

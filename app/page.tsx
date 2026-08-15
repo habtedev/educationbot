@@ -82,6 +82,7 @@ export default function Home() {
   }, [cachedStatus]);
 
   const handleClose = useCallback(() => {
+    // Hide overlay immediately via CSS transform slide
     setOpenCourseId(null);
     checkCacheStatus();
   }, [checkCacheStatus]);
@@ -196,6 +197,7 @@ export default function Home() {
 
             {Boolean(openCourse) && (
               <PDFViewer
+                key={openCourseId}
                 courseId={openCourseId!}
                 file={getBestPdfFile(`/courses/${openCourse!.file}`)}
                 fallbackUrl={`/courses/${openCourse!.file}`}
