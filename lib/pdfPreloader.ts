@@ -10,6 +10,8 @@ const CACHE_NAME = 'pdf-cache-v1';
 
 // In-memory RAM store: PDF URL -> Uint8Array
 const preloadedBuffers = new Map<string, Uint8Array>();
+// Stable Object store: PDF URL -> { data: Uint8Array } to maintain === equality for react-pdf
+const preloadedFileObjects = new Map<string, { data: Uint8Array }>();
 
 let workerInitialized = false;
 
@@ -38,6 +40,7 @@ export const preloadBuffer = async (url: string): Promise<Uint8Array | null> => 
       if (buffer && buffer.byteLength > 0) {
         const uint8 = new Uint8Array(buffer);
         preloadedBuffers.set(url, uint8);
+        preloadedFileObjects.set(url, { data: uint8 });
         return uint8;
       }
     }
@@ -61,11 +64,11 @@ export const preloadCachedPdfs = (urls: string[]): void => {
 
 /**
  * Get the exact file prop object for react-pdf's <Document file={...}>.
+ * Maintains strict === reference equality so react-pdf doesn't destroy worker threads.
  */
 export const getBestPdfFile = (originalUrl: string): unknown => {
-  if (preloadedBuffers.has(originalUrl)) {
-    const data = preloadedBuffers.get(originalUrl)!;
-    return { data };
+  if (preloadedFileObjects.has(originalUrl)) {
+    return preloadedFileObjects.get(originalUrl)!;
   }
   return originalUrl;
 };
@@ -73,3 +76,4 @@ export const getBestPdfFile = (originalUrl: string): unknown => {
 export const getBestPdfUrl = (originalUrl: string): string => originalUrl;
 
 export const isPreloaded = (url: string): boolean => preloadedBuffers.has(url);
+
