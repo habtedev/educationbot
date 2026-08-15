@@ -46,23 +46,18 @@ export default function CourseViewer({ params }: { params: Promise<{ id: string 
 
   // Telegram back button
   useEffect(() => {
-    let WebApp: any = null;
-    const init = async () => {
-      if (typeof window !== 'undefined') {
-        WebApp = (await import('@twa-dev/sdk')).default;
-        if (WebApp.initData) {
-          WebApp.BackButton.show();
-          WebApp.BackButton.onClick(() => router.back());
-        }
-      }
-    };
-    init();
-    return () => {
-      if (WebApp?.initData) {
+    const WebApp = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
+
+    if (WebApp && WebApp.initData) {
+      WebApp.BackButton.show();
+      const handleBack = () => router.back();
+      WebApp.BackButton.onClick(handleBack);
+
+      return () => {
         WebApp.BackButton.hide();
-        WebApp.BackButton.offClick(() => router.back());
-      }
-    };
+        WebApp.BackButton.offClick(handleBack);
+      };
+    }
   }, [router]);
 
   // Background cache — use originalUrl (not blob URL) for the cache key

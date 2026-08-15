@@ -71,8 +71,8 @@ export default function Home() {
     };
   }, [checkCacheStatus]);
 
-  // ── Handle open / close ──────────────────────────────────────────────────
   const handleOpenCourse = useCallback((courseId: string) => {
+    console.time(`⏱️ Instant Open [${courseId}]`);
     // Start background caching if not cached
     const course = AVAILABLE_COURSES.find(c => c.id === courseId);
     if (course && !cachedStatus[courseId]) {
