@@ -72,6 +72,7 @@ export default function Home() {
   }, [checkCacheStatus]);
 
   const handleOpenCourse = useCallback((courseId: string) => {
+    try { console.timeEnd(`⏱️ Instant Open [${courseId}]`); } catch {}
     console.time(`⏱️ Instant Open [${courseId}]`);
     // Start background caching if not cached
     const course = AVAILABLE_COURSES.find(c => c.id === courseId);
