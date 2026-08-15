@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Star } from 'lucide-react';
 import { useCourseStore } from '../../../store/useCourseStore';
-import { getBestPdfUrl } from '../../../lib/pdfPreloader';
+import { getBestPdfFile } from '../../../lib/pdfPreloader';
 import styles from './page.module.css';
 
 // Dynamic import with ssr:false — needed to prevent DOMMatrix error during static build.
@@ -40,12 +40,9 @@ export default function CourseViewer({ params }: { params: Promise<{ id: string 
   const { favorites, toggleFavorite } = useCourseStore();
   const isFavorite = favorites.includes(id);
 
-  // FIX 1: Compute the best URL immediately on first render.
-  // getBestPdfUrl checks if this PDF was already pre-loaded as a blob URL
-  // in memory (by pdfPreloader.ts on the home page). If yes → instant render.
-  // If no → falls back to original URL, Service Worker serves from cache.
+  // FIX 1: Compute the best file immediately on first render using 3-layer preloader.
   const originalUrl = course ? `/courses/${course.file}` : null;
-  const pdfUrl = originalUrl ? getBestPdfUrl(originalUrl) : null;
+  const pdfFile = originalUrl ? getBestPdfFile(originalUrl) : null;
 
   // Telegram back button
   useEffect(() => {
@@ -120,9 +117,8 @@ export default function CourseViewer({ params }: { params: Promise<{ id: string 
         </div>
       </header>
 
-      {/* FIX 3: Always render PDFViewer immediately — never conditionally hide it.
-          pdfUrl is now always ready on first render so there's zero delay. */}
-      {pdfUrl && <PDFViewer courseId={id} url={pdfUrl} />}
+      {/* FIX 3: Always render PDFViewer immediately — never conditionally hide it. */}
+      {Boolean(pdfFile) && <PDFViewer courseId={id} file={pdfFile} />}
     </main>
   );
 }

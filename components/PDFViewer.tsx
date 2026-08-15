@@ -25,10 +25,6 @@ interface PDFViewerProps {
   file: unknown;
 }
 
-const VirtualPage = ({ pageNumber, width, scale, scrollRoot, onVisible }: VirtualPageProps) => {
-// Each page is a placeholder div. The real <Page> only renders when
-// the placeholder enters the viewport. This is the key to instant opening:
-// instead of rendering 234 pages, we only render ~2-3 visible ones.
 interface VirtualPageProps {
   pageNumber: number;
   width: number;
@@ -37,6 +33,10 @@ interface VirtualPageProps {
   onVisible: (page: number) => void;
 }
 
+// ─── Virtual Page ──────────────────────────────────────────────────────────
+// Each page is a placeholder div. The real <Page> only renders when
+// the placeholder enters the viewport. This is the key to instant opening:
+// instead of rendering 234 pages, we only render ~2-3 visible ones.
 const VirtualPage = ({ pageNumber, width, scale, scrollRoot, onVisible }: VirtualPageProps) => {
   const [shouldRender, setShouldRender] = useState(pageNumber <= 2); // render first 2 pages immediately
   const wrapperRef = useRef<HTMLDivElement>(null);

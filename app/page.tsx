@@ -192,7 +192,7 @@ export default function Home() {
               </button>
             </header>
 
-            {pdfFile && (
+            {Boolean(pdfFile) && (
               <PDFViewer courseId={openCourseId!} file={pdfFile} />
             )}
           </>
