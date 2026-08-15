@@ -140,12 +140,7 @@ export const PDFViewer = ({ courseId, file }: PDFViewerProps) => {
 
   const onDocumentLoadSuccess = useCallback(({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
-    try {
-      console.timeEnd(`⏱️ Instant Open [${courseId}]`);
-    } catch {
-      // Ignore if timer was not active
-    }
-  }, [courseId]);
+  }, []);
 
   const onPageVisible = useCallback((page: number) => {
     setPageNumber(page);
