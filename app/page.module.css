@@ -139,3 +139,61 @@
   gap: 6px;
   opacity: 0.7;
 }
+
+/* ── PDF Overlay ─────────────────────────────────────────────────────────── */
+/* Sits on top of the home page. Slides in instantly via CSS transform.      */
+/* No page navigation = no white flash = instant feel.                       */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #09090b;
+  display: flex;
+  flex-direction: column;
+  /* Start off-screen to the right */
+  transform: translateX(100%);
+  /* Instant slide — 200ms feels native, not jarring */
+  transition: transform 0.2s ease;
+  will-change: transform;
+}
+
+.overlayOpen {
+  transform: translateX(0);
+}
+
+.overlayHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(9, 9, 11, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  flex-shrink: 0;
+}
+
+.overlayTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f4f4f5;
+  flex: 1;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 8px;
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: #818cf8;
+  font-weight: 500;
+  padding: 8px 4px;
+  font-size: 0.9rem;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.active {
+  color: #f59e0b;
+}
